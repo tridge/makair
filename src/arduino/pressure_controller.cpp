@@ -145,7 +145,7 @@ void PressureController::compute(uint16_t p_centiSec)
     }
     }
 
-  //  safeguards(p_centiSec);
+    safeguards(p_centiSec);
 
     DBG_PHASE_PRESSION(p_centiSec, 1, m_phase, m_pressure)
 
@@ -278,7 +278,7 @@ void PressureController::inhale()
         // Update the peak pressure
         m_peakPressure = m_pressure;
 }
-}
+
 /*
 void PressureController::plateau()
 {
@@ -318,14 +318,26 @@ void PressureController::exhale()
 
 void PressureController::safeguards(uint16_t p_centiSec)
 {
-    if(m_pressure < m_minPeep && m_pressure > 2){
+    if(m_pressure < m_minPeep && m_pressure > 2 && CyclePhases::EXHALATION){
         m_patient.command = 76;
-        m_y.command = 30;
+        m_y.command = 40;
 
         // Fermer le patient
         // Ouvrir un peu le blower
 
    //     m_patient.command = 80;
+    }
+
+    if(m_phase == CyclePhases::INHALATION){
+
+//        si accélération = 0 alors déclencher le plateau
+    }
+
+    if(m_pressure > 500){
+            DBG_DO(Serial.println("pression plateau ++");)
+
+                m_patient.command = 60;
+                m_y.command = 30;
     }
 
 
