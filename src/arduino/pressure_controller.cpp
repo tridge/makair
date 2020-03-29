@@ -114,6 +114,11 @@ void PressureController::initRespiratoryCycle()
 void PressureController::updatePressure(int16_t p_currentPressure)
 {
     m_pressure = p_currentPressure;
+    
+    for (byte i = 0; i < (sizeof(m_last_pressures) / sizeof(m_last_pressures[0])); i = i + 1) {
+        m_last_pressures[i] = m_last_pressures[i+1];
+    }
+    m_last_pressures[19] = m_pressure;
 }
 
 void PressureController::compute(uint16_t p_centiSec)
@@ -129,19 +134,10 @@ void PressureController::compute(uint16_t p_centiSec)
         inhale();
         break;
     }
-    case CyclePhases::PLATEAU:
-    {
-        plateau();
-        break;
-    }
     case CyclePhases::EXHALATION:
     {
         exhale();
         break;
-    }
-    case CyclePhases::HOLD_EXHALATION:
-    {
-      break;
     }
     default:
     {
@@ -149,7 +145,7 @@ void PressureController::compute(uint16_t p_centiSec)
     }
     }
 
-    safeguards(p_centiSec);
+  //  safeguards(p_centiSec);
 
     DBG_PHASE_PRESSION(p_centiSec, 1, m_phase, m_pressure)
 
@@ -234,11 +230,10 @@ void PressureController::updatePhase(uint16_t p_centiSec)
 {
 
 
-    if (p_centiSec < (m_centiSecPerInhalation * 0.6)) {
+    if (p_centiSec <  m_centiSecPerInhalation) {
         m_phase = CyclePhases::INHALATION;
-    } else if (p_centiSec < m_centiSecPerInhalation) {
-        m_phase = CyclePhases::PLATEAU;
-    } else
+    }
+    else
     {
          m_phase = CyclePhases::EXHALATION;
     }
@@ -264,21 +259,27 @@ void PressureController::updatePhase(uint16_t p_centiSec)
 void PressureController::inhale()
 {
     if (m_previousPhase != CyclePhases::INHALATION) 
-    {
+   // {
         // Open the air stream towards the patient's lungs
-        m_blower.command = 80;
+    //    m_blower.command = 80;
 
         // Direct the air stream towards the patient's lungs
-        m_y.command = 65;
+        m_y.command = 5;
 
         // Open the air stream towards the patient's lungs
-        m_patient.command = 90;
+        m_patient.command = 76;
 
+
+// servomoteur blower : connecte le flux d'air vers le Air Transistor patient ou
+// vers l'extérieur 90° → tout est fermé entre 45° (90 - ANGLE_OUVERTURE_MAXI)
+// et 82° (90 - ANGLE_OUVERTURE_MINI) → envoi du flux vers l'extérieur entre 98°
+// (90 + ANGLE_OUVERTURE_MINI) et 135° (90 + ANGLE_OUVERTURE_MAXI) → envoi du
+// flux vers le Air Transistor patient
         // Update the peak pressure
         m_peakPressure = m_pressure;
-    }
 }
-
+}
+/*
 void PressureController::plateau()
 {
     if (m_previousPhase != CyclePhases::PLATEAU) 
@@ -296,19 +297,19 @@ void PressureController::plateau()
         m_plateauPressure = m_pressure;
     }
 }
-
+*/
 void PressureController::exhale()
 {
     if (m_previousPhase != CyclePhases::EXHALATION)
     {
         // Deviate the air stream outside
-        m_blower.command = 35;
+       // m_blower.command = 35;
 
         // Direct the air stream towards the patient's lungs
         m_y.command = 65;
 
         // Open the valve so the patient can exhale outside
-        m_patient.command = 25;
+        m_patient.command = 40;
 
         // Update the PEEP
         m_peep = m_pressure;
@@ -317,6 +318,18 @@ void PressureController::exhale()
 
 void PressureController::safeguards(uint16_t p_centiSec)
 {
+    if(m_pressure < m_minPeep && m_pressure > 2){
+        m_patient.command = 76;
+        m_y.command = 30;
+
+        // Fermer le patient
+        // Ouvrir un peu le blower
+
+   //     m_patient.command = 80;
+    }
+
+
+    /*
     if (m_pressure > m_maxPeakPressure)
     {
         DBG_PRESSION_CRETE(p_centiSec, 80)
@@ -346,6 +359,7 @@ void PressureController::safeguards(uint16_t p_centiSec)
         m_patient.command = 80;
         m_phase = CyclePhases::HOLD_EXHALATION;
     }
+    */
 }
 
 void PressureController::computeCentiSecParameters()

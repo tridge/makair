@@ -30,7 +30,5 @@
 enum CyclePhases
 {
     INHALATION,
-    PLATEAU,
-    EXHALATION,
-    HOLD_EXHALATION
+    EXHALATION
 };

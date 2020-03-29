@@ -211,6 +211,9 @@ private:
     /// Plateau pressure
     uint16_t m_plateauPressure;
 
+    /// tableau de stockage des pressions détectées
+    uint16_t m_last_pressures[20];
+
     /// Positive End Expiratory Pressure
     uint16_t m_peep;
 
